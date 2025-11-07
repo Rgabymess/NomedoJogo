@@ -1,38 +1,79 @@
 package com.nomedojogo.utils;
 
-import com.nomedojogo.entities.Player;
-
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
-public class CommandCenter extends KeyAdapter {
-    private Player player;
+/**
+ * Centraliza o controle de entradas do jogador.
+ * Mantém compatibilidade com métodos antigos (isLeftPressed, isRightPressed, etc).
+ */
+public class CommandCenter implements KeyListener {
 
-    public CommandCenter(Player player) { 
-        this.player = player; 
+    private boolean leftPressed;
+    private boolean rightPressed;
+    private boolean upPressed;
+    private boolean downPressed;
+    private boolean jumpPressed;
+    private boolean attackPressed;
+
+    public CommandCenter() {}
+
+    // Métodos de checagem — compatíveis com o Player antigo
+    public boolean isLeftPressed() {
+        return leftPressed;
     }
 
+    public boolean isRightPressed() {
+        return rightPressed;
+    }
+
+    public boolean isUpPressed() {
+        return upPressed;
+    }
+
+    public boolean isDownPressed() {
+        return downPressed;
+    }
+
+    public boolean isJumpPressed() {
+        return jumpPressed;
+    }
+
+    public boolean isAttackPressed() {
+        return attackPressed;
+    }
+
+    // Eventos de teclado
     @Override
     public void keyPressed(KeyEvent e) {
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_A -> player.setLeftPressed(true);
-            case KeyEvent.VK_D -> player.setRightPressed(true);
-            case KeyEvent.VK_W -> player.setJumpPressed(true);
-            case KeyEvent.VK_E -> player.breakBlock(Player.Direction.FRONT);
-            case KeyEvent.VK_R -> player.breakBlock(Player.Direction.ABOVE);
-            case KeyEvent.VK_F -> player.breakBlock(Player.Direction.BELOW);
-            case KeyEvent.VK_Q -> player.placeBlock(Player.Direction.FRONT);
-            case KeyEvent.VK_T -> player.placeBlock(Player.Direction.ABOVE);
-            case KeyEvent.VK_G -> player.placeBlock(Player.Direction.BELOW);
+        int code = e.getKeyCode();
+
+        switch (code) {
+            case KeyEvent.VK_A -> leftPressed = true;
+            case KeyEvent.VK_D -> rightPressed = true;
+            case KeyEvent.VK_W -> upPressed = true;
+            case KeyEvent.VK_S -> downPressed = true;
+            case KeyEvent.VK_SPACE -> jumpPressed = true;
+            case KeyEvent.VK_J -> attackPressed = true;
         }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_A -> player.setLeftPressed(false);
-            case KeyEvent.VK_D -> player.setRightPressed(false);
-            case KeyEvent.VK_W -> player.setJumpPressed(false);
+        int code = e.getKeyCode();
+
+        switch (code) {
+            case KeyEvent.VK_A -> leftPressed = false;
+            case KeyEvent.VK_D -> rightPressed = false;
+            case KeyEvent.VK_W -> upPressed = false;
+            case KeyEvent.VK_S -> downPressed = false;
+            case KeyEvent.VK_SPACE -> jumpPressed = false;
+            case KeyEvent.VK_J -> attackPressed = false;
         }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // não utilizado
     }
 }

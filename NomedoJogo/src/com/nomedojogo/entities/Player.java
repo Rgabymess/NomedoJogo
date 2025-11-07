@@ -1,107 +1,71 @@
 package com.nomedojogo.entities;
 
-import com.nomedojogo.world.World;
-import com.nomedojogo.world.Voxel;
+import java.awt.Color;
+import java.awt.Graphics2D;
 
+import com.nomedojogo.utils.CommandCenter;
+import com.nomedojogo.world.World;
+
+/**
+ * Player com posição e velocidade precisas (double).
+ * Compatível com o PhysicsEngine refinado.
+ */
 public class Player {
-    private double x, y;
-    private double dx = 0, dy = 0;
-    private double speed = 0.1;
-    private double gravity = 0.1;
-    private double terminalVelocity = 3.0;
-    private double jumpStrength = 2.0;
-    private int maxJumpTicks = 15;
-    private int jumpTicks = 0;
-    private boolean isJumping = false;
+
+    private double preciseX, preciseY;
+    private double velX, velY;
+
+    private final int TILE_SIZE = 16;
+    private final double width = 0.8;
+    private final double height = 0.95;
 
     private boolean leftPressed, rightPressed, jumpPressed;
 
-    private World world;
-
-    public enum Direction { FRONT, ABOVE, BELOW }
-
-    public Player(int x, int y, World world) {
-        this.x = x;
-        this.y = y;
-        this.world = world;
+    public Player(double x, double y) {
+        this.preciseX = x;
+        this.preciseY = y;
     }
 
-    public void update() {
-        // Horizontal movement
-        dx = 0;
-        if (leftPressed) dx = -speed;
-        if (rightPressed) dx = speed;
-        if (!collidesAt(x + dx, y)) x += dx;
-
-        // Vertical movement
-        if (onGround()) {
-            dy = 0;
-            jumpTicks = 0;
-            if (jumpPressed) {
-                isJumping = true;
-            }
-        }
-
-        if (isJumping) {
-            if (jumpTicks < maxJumpTicks && !collidesAt(x, y - jumpStrength)) {
-                dy = -jumpStrength;
-                jumpTicks++;
-            } else {
-                isJumping = false;
-            }
-        }
-
-        dy += gravity;
-        if (dy > terminalVelocity) dy = terminalVelocity;
-
-        if (!collidesAt(x, y + dy)) y += dy;
-        else dy = 0;
+    // === Atualização de entrada ===
+    public void updateInputs(CommandCenter commandCenter) {
+        leftPressed = commandCenter.isLeftPressed();
+        rightPressed = commandCenter.isRightPressed();
+        jumpPressed = commandCenter.isJumpPressed();
     }
 
-    private boolean onGround() {
-        return collidesAt(x, y + 1);
+    public void update(World world) {
+        // A física será chamada externamente (PhysicsEngine.update)
+        // aqui podemos adicionar lógica extra se precisar
     }
 
-    private boolean collidesAt(double newX, double newY) {
-        int blockX = (int) Math.round(newX);
-        int blockY = (int) Math.round(newY);
+    // === Renderização ===
+    public void render(Graphics2D g, int camX, int camY) {
+        int drawX = (int) ((preciseX * TILE_SIZE) - camX);
+        int drawY = (int) ((preciseY * TILE_SIZE) - camY);
+        int drawW = (int) (width * TILE_SIZE);
+        int drawH = (int) (height * TILE_SIZE);
 
-        Voxel voxel = world.getBlock(blockX, blockY);
-        return voxel != null && !voxel.getType().equals("Air");
+        g.setColor(Color.RED);
+        g.fillRect(drawX, drawY, drawW, drawH);
     }
 
-    public void breakBlock(Direction dir) {
-        int targetX = (int) Math.round(x);
-        int targetY = (int) Math.round(y);
+    // === Getters e Setters precisos ===
+    public double getPreciseX() { return preciseX; }
+    public double getPreciseY() { return preciseY; }
+    public void setPreciseX(double preciseX) { this.preciseX = preciseX; }
+    public void setPreciseY(double preciseY) { this.preciseY = preciseY; }
 
-        switch (dir) {
-            case FRONT -> targetY = (int) Math.round(y);
-            case ABOVE -> targetY = (int) Math.round(y - 1);
-            case BELOW -> targetY = (int) Math.round(y + 1);
-        }
+    public double getVelX() { return velX; }
+    public double getVelY() { return velY; }
+    public void setVelX(double velX) { this.velX = velX; }
+    public void setVelY(double velY) { this.velY = velY; }
 
-        if (world.getBlock(targetX, targetY) != null)
-            world.setBlock(targetX, targetY, new Voxel("Air"));
-    }
+    // === Inputs ===
+    public boolean isLeftPressed() { return leftPressed; }
+    public boolean isRightPressed() { return rightPressed; }
+    public boolean isJumpPressed() { return jumpPressed; }
 
-    public void placeBlock(Direction dir) {
-        int targetX = (int) Math.round(x);
-        int targetY = (int) Math.round(y);
-
-        switch (dir) {
-            case FRONT -> targetY = (int) Math.round(y);
-            case ABOVE -> targetY = (int) Math.round(y - 1);
-            case BELOW -> targetY = (int) Math.round(y + 1);
-        }
-
-        if (world.getBlock(targetX, targetY) != null)
-            world.setBlock(targetX, targetY, new Voxel("Dirt"));
-    }
-
-    public int getX() { return (int) Math.round(x); }
-    public int getY() { return (int) Math.round(y); }
-
-    public void setLeftPressed(boolean pressed) { leftPressed = pressed; }
-    public void setRightPressed(boolean pressed) { rightPressed = pressed; }
-    public void setJumpPressed(boolean pressed) { jumpPressed = pressed; }
+    // === Utilidades ===
+    public double getWidth() { return width; }
+    public double getHeight() { return height; }
 }

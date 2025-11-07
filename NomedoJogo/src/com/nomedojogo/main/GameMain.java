@@ -1,71 +1,75 @@
 package com.nomedojogo.main;
 
-import com.nomedojogo.entities.Player;
-import com.nomedojogo.utils.CommandCenter;
-import com.nomedojogo.utils.EntityFactory;
-import com.nomedojogo.utils.CameraSystem;
-import com.nomedojogo.world.ProceduralVoxelEngine;
-import com.nomedojogo.world.World;
-import com.nomedojogo.world.Voxel;
-
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
+import com.nomedojogo.entities.Player;
+import com.nomedojogo.utils.*;
+import com.nomedojogo.world.*;
 
-public class GameMain extends JPanel {
-    private World world;
-    private Player player;
-    private CameraSystem camera;
-    private final int BLOCK_SIZE = 32;
-    private final int VIEW_WIDTH = 20;
-    private final int VIEW_HEIGHT = 15;
+public class GameMain extends JPanel implements Runnable {
+    private final World world;
+    private final Player player;
+    private final CameraSystem camera;
+    private final CommandCenter commands;
+    private final BlockInteractionSystem blockSystem;
+    private boolean running = true;
+    private int mouseX, mouseY;
 
     public GameMain() {
-        ProceduralVoxelEngine engine = new ProceduralVoxelEngine();
-        world = engine.generateWorld(100, 50);
-
-        EntityFactory factory = new EntityFactory();
-        player = factory.createPlayer(world);
-
-        camera = new CameraSystem(world, VIEW_WIDTH, VIEW_HEIGHT);
-
-        CommandCenter controls = new CommandCenter(player);
+        setPreferredSize(new Dimension(960, 540));
         setFocusable(true);
-        addKeyListener(controls);
 
-        Timer timer = new Timer(16, e -> {
-            player.update();
-            camera.update(player);
-            repaint();
+        world = new World(200, 60);
+        player = EntityFactory.createPlayer(world);
+        camera = new CameraSystem(world, 960, 540);
+        commands = new CommandCenter();
+        blockSystem = new BlockInteractionSystem(world, camera);
+
+        addKeyListener(new KeyAdapter() {
+            public void keyPressed(KeyEvent e) { commands.handleKeyPress(e); }
+            public void keyReleased(KeyEvent e) { commands.handleKeyRelease(e); }
         });
-        timer.start();
+
+        addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                blockSystem.handleMouseClick(e, SwingUtilities.isRightMouseButton(e));
+            }
+        });
+
+        addMouseMotionListener(new MouseMotionAdapter() {
+            public void mouseMoved(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
+            }
+        });
+
+        new Thread(this).start();
     }
 
-    @Override
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        for (int x = 0; x < VIEW_WIDTH; x++) {
-            for (int y = 0; y < VIEW_HEIGHT; y++) {
-                int worldX = x + camera.getCamX();
-                int worldY = y + camera.getCamY();
-                Voxel voxel = world.getBlock(worldX, worldY);
-                if (voxel != null) {
-                    g.setColor(voxel.getColor());
-                    g.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-                }
-            }
+    public void run() {
+        while (running) {
+            player.update(commands.isLeft(), commands.isRight(), commands.isJump());
+            camera.update(player);
+            repaint();
+            try { Thread.sleep(16); } catch (InterruptedException ignored) {}
         }
-        g.setColor(Color.RED);
-        g.fillRect((player.getX() - camera.getCamX()) * BLOCK_SIZE,
-                   (player.getY() - camera.getCamY()) * BLOCK_SIZE,
-                   BLOCK_SIZE, BLOCK_SIZE);
+    }
+
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        world.render(g, camera.getX(), camera.getY(), getWidth(), getHeight());
+        player.render(g, camera.getX(), camera.getY());
+        blockSystem.renderOutline(g, mouseX, mouseY);
     }
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("TerrariaClone");
-        GameMain game = new GameMain();
-        frame.add(game);
-        frame.setSize(20 * 32, 15 * 32);
+        JFrame frame = new JFrame("TileWorld");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
+        frame.add(new GameMain());
+        frame.pack();
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 }
